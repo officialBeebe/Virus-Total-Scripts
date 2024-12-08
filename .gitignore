@@ -1,4 +1,78 @@
-/.env
-/.idea/
+# Byte-compiled Python files
+__pycache__/
+*.py[cod]
+*$py.class
 
-/.venv/
+# Virtual environment directories
+env/
+venv/
+ENV/
+.venv/
+.ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Install logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Pytest
+.cache/
+*.pytest_cache/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# PyCharm / IntelliJ IDEA
+.idea/
+*.iml
+
+# VSCode settings
+.vscode/
+
+# macOS files
+.DS_Store
+
+# Windows Thumbs
+Thumbs.db
+
+# Log files
+*.log
+
+# Environment variables
+.env
+.env.*
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Profiling data
+*.prof
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*.~lock.*
+
+# Linter artifacts
+pylint.log
+
+# Unit test results
+*.xml
+
+# Other unwanted files
+*.bak
+*.orig
+*.rej
