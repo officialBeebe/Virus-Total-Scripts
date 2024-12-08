@@ -19,7 +19,8 @@ def main(url="http://www.virustotal.com"):
     # Convert the URL object to a dictionary and pretty-print the entire url object... if the user wants to see it.
     should_print_url_object = inquirer.prompt([inquirer.Confirm("print_url_object", message="Print the URL object?")])
     if should_print_url_object[
-        "print_url_object"] is True:  # should_print_url_object is a dictionary with a key "print_url_object" and a boolean value
+        "print_url_object"] is True:  # should_print_url_object is a dictionary with a key "print_url_object" and a
+        # boolean value
         pprint(url_object.to_dict())
 
     print(line_of_dashes)
@@ -85,7 +86,8 @@ def get_url_object(url):
         raise ValueError("API_KEY not in .env file...")
 
     try:
-        # Use context manager to establish a connection to the VirusTotal API, perform an action, and close the connection
+        # Use context manager to establish a connection to the VirusTotal API, perform an action, and close the
+        # connection
         with vt.Client(key) as Client:
             url_id = vt.url_id(url)  # VirusTotal backend hashes the URL
             url_object = Client.get_object(f"/urls/{url_id}")
@@ -100,8 +102,11 @@ def get_url_object(url):
 if __name__ == "__main__":
     main(input("Enter a URL: "))
 
-# TODO: Implement fzf interface for selecting objects in the file system to scan. Also add object scanning functionality...
+# TODO: Implement fzf interface for selecting objects in the file system to scan. Also add object scanning
+#  functionality...
 
-# TODO: Implement argparse for command-line arguments to specify scanning a single URL, many URLS, or a file system object or collection of objects.
+# TODO: Implement argparse for command-line arguments to specify scanning a single URL, many URLS, or a file system
+#  object or collection of objects.
 
-# TODO: Implement database functionality to store the results of scans... possibly need another service to consume this one. In that case return all output as Pandas DataFrames!
+# TODO: Implement database functionality to store the results of scans... possibly need another service to consume
+#  this one. In that case return all output as Pandas DataFrames!
