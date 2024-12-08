@@ -7,8 +7,8 @@ import vt
 from dotenv import dotenv_values
 
 # Constants
-line_of_dashes = f"{"\n"}{"=" * 69}{"\n"}"
-line_of_stars = f"{"\n"}{"*" * 69}{"\n"}"
+line_of_dashes = f"\n{'=' * 69}\n"
+line_of_stars = f"\n{'*' * 69}\n"
 
 
 def main(url="http://www.virustotal.com"):
@@ -50,6 +50,9 @@ def print_analysis_results_for(categories: List[str], analysis_results):
     :param analysis_results:
     :return: Void
     """
+
+    # TODO: Add color coding to the different categories and results: red for malicious, yellow for suspicious,
+    #  green for harmless, etc.
 
     for i, category in enumerate(categories):
         print(f"Category: {category}", end="\n\n")
