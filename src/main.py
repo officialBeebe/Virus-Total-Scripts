@@ -75,13 +75,14 @@ def get_url_object(url):
     :param url:
     :return: URL object
     """
+
+    # TODO: Load the API key securely from a remote server, OR load a .env everytime?
+
     # Load the environment variables from the .env file
     config = dotenv_values("../.env")  # Returns a dictionary
     key = config["API_KEY"]  # "API_KEY" value from the dictionary
     if not key:
         raise ValueError("API_KEY not in .env file...")
-
-    # TODO: Load the API key securely from a remote server, OR load a .env everytime?
 
     try:
         # Use context manager to establish a connection to the VirusTotal API, perform an action, and close the connection
@@ -98,3 +99,9 @@ def get_url_object(url):
 
 if __name__ == "__main__":
     main(input("Enter a URL: "))
+
+# TODO: Implement fzf interface for selecting objects in the file system to scan. Also add object scanning functionality...
+
+# TODO: Implement argparse for command-line arguments to specify scanning a single URL, many URLS, or a file system object or collection of objects.
+
+# TODO: Implement database functionality to store the results of scans... possibly need another service to consume this one. In that case return all output as Pandas DataFrames!
