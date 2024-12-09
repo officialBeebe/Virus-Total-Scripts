@@ -1,90 +1,107 @@
+import argparse
 import json
+import os
 from pprint import pprint
 from typing import *
 
-import inquirer
 import vt
 from dotenv import dotenv_values
-
-# Constants
-line_of_dashes = f"\n{'=' * 69}\n"
-line_of_stars = f"\n{'*' * 69}\n"
+from vt.object import WhistleBlowerDict
 
 
-def main(url="http://www.virustotal.com"):
-    url_object = get_url_object(url)
-    analysis_results = url_object.last_analysis_results
-    analysis_stats = url_object.last_analysis_stats
+def main(args=None):
+    # Get the API key from the .env file
+    project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    env_path = os.path.join(project_dir, '.env')
+    config: Dict = dotenv_values(env_path)
+    api_key = config["API_KEY"]
 
-    # Convert the URL object to a dictionary and pretty-print the entire url object... if the user wants to see it.
-    should_print_url_object = inquirer.prompt([inquirer.Confirm("print_url_object", message="Print the URL object?")])
-    if should_print_url_object[
-        "print_url_object"] is True:  # should_print_url_object is a dictionary with a key "print_url_object" and a
-        # boolean value
-        pprint(url_object.to_dict())
+    # Setup parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-k", "--key", help="API key for VirusTotal.", required=False)
+    parser.add_argument("-p", "--print", help="Print the scanned object.", action="store_true", default=False)
+    parser.add_argument("-d", "--debug", help="Print the raw object data.", action="store_true", default=False)
+    parser.add_argument("-u", "--url", help="URL to scan. Returns analysis results and stats.", required=False)
+    parser.add_argument("-f", "--file", help="File to scan. Returns analysis results and stats.", required=False)
+    parser.add_argument("-c", "--comments", help="Show comments for the scanned object. Default 10.", type=int,
+                        default=10, required=False)
+    parser.add_argument("-o", "--output", help="Output the results to a txt file.", required=False)
 
-    print(line_of_dashes)
+    # Parse args
+    args = parser.parse_args()
+    key: str = args.key or api_key
+    url: str = args.url
+    file: str = args.file
+    should_print: bool = args.print
+    should_debug: bool = args.debug
+    output: str = args.output
+    comments: int = args.comments
 
-    # Print analysis results based on the categories selected by the user. See get_categories for inquirer package.
-    analysis_categories = get_categories(message="Select categories to print: ", analysis_stats=analysis_stats)
-    print_analysis_results_for(analysis_categories, analysis_results)
+    # Handle args
+    if not key:
+        raise ValueError(
+            "This program requires an API key to run. Get one from https://www.virustotal.com/gui/join-us\n\nIf you have a key, enter the flag --key followed by your key.")
 
+    if url:
+        url_object = get_url_object(url, key)
+        analysis_results = url_object.last_analysis_results
+        analysis_stats = url_object.last_analysis_stats
 
-def get_categories(message, analysis_stats):
-    print(f"Analysis stats: {analysis_stats}", end="\n\n")
-    questions = [
-        inquirer.Checkbox('analysis_categories',
-                          message=message,
-                          choices=["Malicious", "Suspicious", "Undetected", "Harmless", "Timeout"],
-                          ),
-    ]
-    answers = inquirer.prompt(questions)
-    return [category.lower() for category in
-            answers["analysis_categories"]]  # List comprehension technique to lowercase each item in the list
+        if should_debug:
+            pprint(url_object.to_dict())
 
+        if should_print:
+            print_analysis_results_for(analysis_results)
 
-def print_analysis_results_for(categories: List[str], analysis_results):
-    """
-    Print the analysis results for the specified categories
-    :param categories:
-    :param analysis_results:
-    :return: Void
-    """
+        # if comments:
+        #     print(url_object.comments)
 
-    # TODO: Add color coding to the different categories and results: red for malicious, yellow for suspicious,
-    #  green for harmless, etc.
+        if output:
+            data = url_object.to_dict()
 
-    for i, category in enumerate(categories):
-        print(f"Category: {category}", end="\n\n")
-        for engine, result in analysis_results.items():
-            if result["category"] == category:
-                print(json.dumps(
-                    {
-                        "Engine": engine,
-                        "Category": result["category"],
-                        "Method": result["method"],
-                        "Result": result["result"]
-                    },
-                    indent=6)
-                )
-
-        # Print a line of stars after each category except the last one
-        if categories[i] != categories[-1]:
-            print(line_of_stars)
+            # Write the data with the custom serializer
+            with open(output, "w") as f:
+                f.write(json.dumps(data, indent=4, default=custom_serializer))
 
 
-def get_url_object(url):
-    """
-    Get the URL object for the specified URL
-    :param url:
-    :return: URL object
-    """
+def custom_serializer(obj):
+    if isinstance(obj, WhistleBlowerDict):
+        return dict(obj)  # Convert WhistleBlowerDict to standard dict
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
+
+def transform_results(results):
+    return [{"engine_name": engine_name, **details} for engine_name, details in results.items()]
+
+
+def print_analysis_results_for(results):
+    # print("DEBUG: Results received:", results)
+    category_order = {
+        "malicious": 0,
+        "suspicious": 1,
+        "undetected": 2,
+        "harmless": 3,
+        "timeout": 4
+    }
+
+    transformed_results = transform_results(results)
+
+    sorted_results = sorted(transformed_results, key=lambda x: category_order.get(x["category"], float("inf")))
+    for entry in sorted_results:
+        print(json.dumps(
+            {
+                "Engine": entry["engine_name"],
+                "Category": entry["category"],
+                "Method": entry["method"],
+                "Result": entry["result"]
+            },
+            indent=4)
+        )
+
+
+def get_url_object(url, key):
     # TODO: Load the API key securely from a remote server, OR load a .env everytime?
 
-    # Load the environment variables from the .env file
-    config = dotenv_values("../.env")  # Returns a dictionary
-    key = config["API_KEY"]  # "API_KEY" value from the dictionary
     if not key:
         raise ValueError("API_KEY not in .env file...")
 
@@ -103,7 +120,7 @@ def get_url_object(url):
 
 
 if __name__ == "__main__":
-    main(input("Enter a URL: "))
+    main()
 
 # TODO: Implement fzf interface for selecting objects in the file system to scan. Also add object scanning
 #  functionality...
