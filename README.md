@@ -1,9 +1,6 @@
 # Overview
 
-This project is a collection of scripts that interact with the Virus Total API on the command line.
-
-Once you start the script the user will be prompted to enter a URL, then follow the prompts to get the desired
-information.
+Pure functional CLI script that uses the Virus Total API to scan URLs and files for malware.
 
 > You will need an API key from Virus Total to use this script. You can get one by signing up for a free
 > account [here](https://www.virustotal.com/gui/join-us).
@@ -70,8 +67,16 @@ If you installed the requirements properly from the last step, python-dotenv wil
 Yea so now that you've activated your virtual environment and installed the necessary dependencies, you can run the
 script like normal.
 
+Example:
+
 ```bash
-python src/main.py
+python src/main.py -u http://www.virustotal.com --print # Scan a URL and print the results
+```
+
+For help with the script, you can run the following command
+
+```bash
+python src/main.py -h
 ```
 
 ## Deactivate the virtual environment
@@ -81,3 +86,11 @@ You can either close the terminal like a savage or you can deactivate the virtua
 ```bash
 deactivate
 ```
+
+# Notes
+
+This script has a lot ahead of it. I plan on implementing more features and containerizing the script for easier
+deployment. I'm not taking any feature requests at the moment but if you have any suggestions, feel free to open an
+issue.
+
+Please note that this script is for educational purposes only. I am not responsible for any misuse of this script.
