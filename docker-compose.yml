@@ -1,0 +1,9 @@
+version: '3.8'
+services:
+  my-vt:
+    image: my-vt
+    secrets:
+      - virustotal_api_key
+secrets:
+  virustotal_api_key:
+    file: /run/secrets/virustotal_api_key
