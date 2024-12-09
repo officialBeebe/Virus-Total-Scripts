@@ -1,8 +1,10 @@
 import argparse
 import json
+import os
 from pprint import pprint
 
 import vt
+from dotenv import dotenv_values
 from vt.object import WhistleBlowerDict
 
 
@@ -13,21 +15,19 @@ def main(args=None):
     # Setup parser
     parser = argparse.ArgumentParser()
     parser.add_argument("-k", "--key", help="API key for VirusTotal.", required=False)
-    parser.add_argument("-p", "--print", help="Print the scanned object.", action="store_true", default=False)
     parser.add_argument("-d", "--debug", help="Print the raw object data.", action="store_true", default=False)
     parser.add_argument("-u", "--url", help="URL to scan. Returns analysis results and stats.", required=False)
     parser.add_argument("-f", "--file", help="File to scan. Returns analysis results and stats.", required=False)
     parser.add_argument("-c", "--comments", help="Show comments for the scanned object. Default 10.", type=int,
                         default=10, required=False)
-    parser.add_argument("-o", "--output", help="Output the results to a txt file.", required=False)
+    parser.add_argument("-o", "--output", help="Output the results to a txt file.", action="store_true", required=False)
 
     # Parse args
     args = parser.parse_args()
     key: str = args.key or api_key
     url: str = args.url
     file: str = args.file
-    should_print: bool = args.print
-    should_debug: bool = args.debug
+    debug: bool = args.debug
     output: str = args.output
     comments: int = args.comments
 
@@ -41,25 +41,11 @@ def main(args=None):
         analysis_results = url_object.last_analysis_results
         analysis_stats = url_object.last_analysis_stats
 
-        if should_debug:
+        if debug:
             pprint(url_object.to_dict())
 
-        if should_print:
-            print_analysis_results_for(analysis_results)
-
-        # if comments:
-        #     print(url_object.comments)
-
         if output:
-            data = url_object.to_dict()
-
-            # Write the data with the custom serializer
-            with open(output, "w") as f:
-                f.write(json.dumps(data, indent=4, default=custom_serializer))
-
-
-import os
-from dotenv import dotenv_values
+            output_analysis_results(analysis_results)
 
 
 def get_api_key():
@@ -102,7 +88,7 @@ def transform_results(results):
     return [{"engine_name": engine_name, **details} for engine_name, details in results.items()]
 
 
-def print_analysis_results_for(results):
+def output_analysis_results(results):
     # print("DEBUG: Results received:", results)
     category_order = {
         "malicious": 0,
