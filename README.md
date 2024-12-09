@@ -2,6 +2,8 @@
 
 Pure functional CLI script that uses the Virus Total API to scan URLs and files for malware.
 
+This script can also be containerized with Docker for easier deployment. See the instructions below for more details.
+
 > You will need an API key from Virus Total to use this script. You can get one by signing up for a free
 > account [here](https://www.virustotal.com/gui/join-us).
 
@@ -78,6 +80,22 @@ For help with the script, you can run the following command
 ```bash
 python src/main.py -h
 ```
+
+Alternatively, you can build the docker image and run the script from there.
+
+```bash
+docker build -t my-vt .
+docker run --rm -e API_KEY="your-api-key" my-vt -u http://www.virustotal.com --print
+````
+
+Additionally, you can allow the script to load the API key from the environment by adding an API_KEY=your-api-key entry
+to the project's .env file and rebuild the docker image. Then you can run the following command:
+
+```bash
+docker run my-vt -u http://www.virustotal.com --print
+```
+
+How lovely is that?
 
 ## Deactivate the virtual environment
 
