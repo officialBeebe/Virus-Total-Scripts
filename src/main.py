@@ -1,20 +1,14 @@
 import argparse
 import json
-import os
 from pprint import pprint
-from typing import *
 
 import vt
-from dotenv import dotenv_values
 from vt.object import WhistleBlowerDict
 
 
 def main(args=None):
-    # Get the API key from the .env file
-    project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    env_path = os.path.join(project_dir, '.env')
-    config: Dict = dotenv_values(env_path)
-    api_key = config["API_KEY"]
+    # Get the API key from somewhere lol
+    api_key = get_api_key()
 
     # Setup parser
     parser = argparse.ArgumentParser()
@@ -62,6 +56,40 @@ def main(args=None):
             # Write the data with the custom serializer
             with open(output, "w") as f:
                 f.write(json.dumps(data, indent=4, default=custom_serializer))
+
+
+import os
+from dotenv import dotenv_values
+
+
+def get_api_key():
+    """
+    Retrieve the API key from Docker Secret, environment variable, or .env file.
+    Prioritize Docker Secret first, then environment variable, then .env.
+    """
+    # 1. Try to read from Docker Secret
+    secret_path = "/run/secrets/virustotal_api_key"
+    if os.path.exists(secret_path):
+        with open(secret_path, "r") as f:
+            api_key = f.read().strip()
+        if api_key:
+            return api_key
+        else:
+            raise ValueError("API_KEY found in Docker Secret is empty.")
+
+    # 2. Try to get the API key from an environment variable
+    api_key = os.getenv("API_KEY")
+    if api_key:
+        return api_key
+
+    # 3. Fallback to .env file
+    project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    env_path = os.path.join(project_dir, '.env')
+    config = dotenv_values(env_path)
+    api_key = config.get("API_KEY")
+
+    if api_key:
+        return api_key
 
 
 def custom_serializer(obj):
