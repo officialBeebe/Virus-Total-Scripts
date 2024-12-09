@@ -72,7 +72,7 @@ script like normal.
 Example:
 
 ```bash
-python src/main.py -u http://www.virustotal.com --print # Scan a URL and print the results
+python src/main.py -k your-api-key -u http://www.virustotal.com --print # Scan a URL and print the results
 ```
 
 For help with the script, you can run the following command
