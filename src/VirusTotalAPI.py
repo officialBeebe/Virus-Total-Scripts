@@ -6,7 +6,7 @@ import requests
 
 
 class VirusTotalAPI:
-    def __init__(self, api_key="acf878b3abf89c5d3a4136720301351f307d0746f83ed05a0e7cc0133ecadc33"):
+    def __init__(self, api_key=None):
         self.api_key = api_key
         self.base = 'https://www.virustotal.com/api/v3'
         self.headers = {"accept": "application/json", "x-apikey": self.api_key}
