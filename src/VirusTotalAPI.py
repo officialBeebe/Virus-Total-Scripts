@@ -1,7 +1,6 @@
 import base64
 import logging
 import os
-import pprint
 
 import requests
 import validators
@@ -9,7 +8,7 @@ from dotenv import dotenv_values
 
 
 class VirusTotalAPI:
-    def __init__(self, api_key="acf878b3abf89c5d3a4136720301351f307d0746f83ed05a0e7cc0133ecadc33"):
+    def __init__(self, api_key=None):
         self.api_key = api_key
         if not self.api_key:
             raise ValueError("No API key provided.")
@@ -160,110 +159,3 @@ class VirusTotalAPI:
         - Behavior analysis
         - MITRE ATT&CK integration
 """
-
-if __name__ == "__main__":
-    # api_key = input("Enter your VirusTotal API key: ")
-    # vt = VirusTotalAPI(api_key)
-    #
-    # # Example usage
-    # url = "https://www.virustotal.com/"
-    # scan = vt.scan_url(url)
-    # url_id = scan["data"]["id"]
-    # print(url)
-    # print(scan)
-    # print(f"URL ID: {url_id}")
-    # print(type(url_id))
-    # print("Attempting to get URL report...")
-    #
-    # url_report = vt.get_url_report(url_id)
-    # print(url_report)
-
-    vt = VirusTotalAPI()
-
-    # url = "http://www.virustotal.com/"
-    # url_scan = vt.scan_url(url)
-    # url_id = url_scan['data']['id'].split("-")[1]
-    # print("scan_url URL: ", url_scan, end="\n\n")
-    #
-    # print(f"\n\n{" * " * 25}\n\n")
-    #
-    # print("scan_url ID: ", url_id, end="\n\n")
-    #
-    # print(f"\n\n{" * " * 25}\n\n")
-    #
-    # url_report = vt.get_url_report(url_id)
-    # print("URL Report: ", json.dumps(url_report, indent=4), end="\n\n")
-    # # pprint.pprint(url_report, indent=4)
-    #
-    # print(f"\n\n{" * " * 25}\n\n")
-
-    domain_list = [
-        # "virustotal.com"  # VirusTotal
-        # "fidelity.com",  # Financial services
-        "attack.mitre.org",  # MITRE ATT&CK framework
-        # "nsa.gov",  # U.S. National Security Agency
-        # "akamai.com",  # CDN and security services
-    ]
-
-    for domain in domain_list:
-        domain_report = vt.get_domain_report(domain)
-        print(f"Domain Report for {domain}: ")
-        pprint.pprint(domain_report, indent=4)
-
-    print(f"\n\n{" * " * 25}\n\n")
-
-    ip_address_list = [
-        # "192.168.1.1",  # Local network IP
-        # "10.0.0.1",  # Private network IP
-        # "172.16.0.1",  # Private network IP
-        "8.8.8.8",  # Google Public DNS
-        # "1.1.1.1"  # Cloudflare DNS
-    ]
-    for ip in ip_address_list:
-        ip_report = vt.get_ip_report(ip)
-        print(f"IP Address Report for {ip}: ")
-        pprint.pprint(ip_report, indent=4)
-
-    # print(f"\n\n{" * " * 25}\n\n")
-    #
-    # files = ["VirustotalAPI.py"]
-    # for file in files:
-    #     upload_response = vt.upload_file(file, password=None)
-    #     print(f"Uploaded {file}: ")
-    #     pprint.pprint(upload_response, indent=4)
-    #
-    #     print("Analysis is queued. Waiting...")
-    #     max_retries = 10
-    #     retries = 0
-    #     while retries < max_retries:
-    #         try:
-    #             upload_analysis = vt.get_url_or_file_analysis(upload_response["data"]["id"])
-    #             status = upload_analysis["data"]["attributes"]["status"]
-    #
-    #             # Wait 5 seconds for the first check
-    #             if retries == 0:
-    #                 time.sleep(5)
-    #                 retries += 1
-    #                 continue
-    #
-    #             if status == "queued":
-    #                 time.sleep(10)
-    #                 retries += 1
-    #                 continue
-    #             elif status == "completed":
-    #                 print("Analysis completed.")
-    #                 pprint.pprint(upload_analysis, indent=4)
-    #                 upload_sha256 = upload_analysis["meta"]["file_info"]["sha256"]
-    #                 break
-    #             else:
-    #                 print(f"Unexpected status: {status}. Exiting.")
-    #                 break
-    #
-    #         except Exception as e:
-    #             print(f"Exception: {e}")
-    #             break
-    #     else:
-    #         print("Max retries reached. Exiting.")
-    #         continue
-
-# TODO: Wrap the HTTP requests in a dictionary and add the logic above to a generate_report() method.
