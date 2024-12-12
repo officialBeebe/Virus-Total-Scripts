@@ -1,17 +1,23 @@
 import base64
+import json
+import logging
+import os
 import pprint
-import time
 
+import pandas as pd
 import requests
+import validators
+from dotenv import dotenv_values
+from vt.object import WhistleBlowerDict
 
 
 class VirusTotalAPI:
-    def __init__(self, api_key=None):
+    def __init__(self, api_key="acf878b3abf89c5d3a4136720301351f307d0746f83ed05a0e7cc0133ecadc33"):
         self.api_key = api_key
+        if not self.api_key:
+            raise ValueError("No API key provided.")
         self.base = 'https://www.virustotal.com/api/v3'
         self.headers = {"accept": "application/json", "x-apikey": self.api_key}
-
-        self.name = "VirusTotal API"
 
     @staticmethod
     def base64_encode(url):
@@ -51,6 +57,16 @@ class VirusTotalAPI:
         """
         return requests.get(f"{self.base}/files/{file_hash}", headers=self.headers).json()
 
+    @staticmethod
+    def validate_url(url):
+        # Set up logging
+        logging.basicConfig(level=logging.INFO)
+
+        if not validators.url(url):
+            logging.error(f"Invalid URL: {url}")
+            return False
+        return True
+
     def scan_url(self, url):
         """
         Submit a URL for analysis.
@@ -88,6 +104,100 @@ class VirusTotalAPI:
     ## Good to Have
 
     ## Advanced
+
+    ## Utils
+    @staticmethod
+    def get_api_key():
+        """
+        Retrieve the API key from Docker Secret, environment variable, or .env file.
+        Prioritize Docker Secret first, then environment variable, then .env.
+        """
+        # 1. Try to read from Docker Secret
+        secret_path = "/run/secrets/virustotal_api_key"
+        if os.path.exists(secret_path):
+            with open(secret_path, "r") as f:
+                api_key = f.read().strip()
+            if api_key:
+                return api_key
+            else:
+                raise ValueError("API_KEY found in Docker Secret is empty.")
+
+        # 2. Try to get the API key from an environment variable
+        api_key = os.getenv("API_KEY")
+        if api_key:
+            return api_key
+
+        # 3. Fallback to .env file
+        project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        env_path = os.path.join(project_dir, '.env')
+        config = dotenv_values(env_path)
+        api_key = config.get("API_KEY")
+
+        if api_key:
+            return api_key
+
+    def rescan_file(self, file_hash):
+        try:
+            response = requests.post(f"{self.base}/files/{file_hash}/analyse", headers=self.headers)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logging.error(f"Failed to rescan file {file_hash}: {e}")
+            return None
+
+    def extract_report_summary(self, report_data):
+        attributes = report_data.get('data', {}).get('attributes', {})
+        summary = {
+            "Reputation": attributes.get("reputation", "Unknown"),
+            "Total Votes (Harmless/Malicious)": attributes.get("total_votes", {}),
+            "Analysis Stats": attributes.get("last_analysis_stats", {}),
+            "Categories": attributes.get("categories", {}),
+            "Certificate Subject": attributes.get("last_https_certificate", {}).get("subject", {}).get("CN", "Unknown"),
+            "Certificate Validity": attributes.get("last_https_certificate", {}).get("validity", {}),
+            "DNS Records": attributes.get("last_dns_records", []),
+            "Popularity Ranks": attributes.get("popularity_ranks", {}),
+            "Creation Date": attributes.get("creation_date", "Unknown"),
+            "WHOIS Info": attributes.get("whois", "Unknown")
+        }
+        return summary
+
+    def display_report_as_table(self, report_data):
+        # Flatten the dictionary into a table-friendly format
+        flat_data = [{"Attribute": key, "Value": value} for key, value in report_data.items()]
+        df = pd.DataFrame(flat_data)  # Create DataFrame from the flattened data
+        print(df.to_markdown(index=False))  # Display as a Markdown table
+
+    def transform_results(self, results):
+        return [{"engine_name": engine_name, **details} for engine_name, details in results.items()]
+
+    def custom_serializer(self, obj):
+        if isinstance(obj, WhistleBlowerDict):
+            return dict(obj)  # Convert WhistleBlowerDict to standard dict
+        raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+    def output_analysis_results(self, results):
+        # print("DEBUG: Results received:", results)
+        category_order = {
+            "malicious": 0,
+            "suspicious": 1,
+            "undetected": 2,
+            "harmless": 3,
+            "timeout": 4
+        }
+
+        transformed_results = self.transform_results(results)
+
+        sorted_results = sorted(transformed_results, key=lambda x: category_order.get(x["category"], float("inf")))
+        for entry in sorted_results:
+            print(json.dumps(
+                {
+                    "Engine": entry["engine_name"],
+                    "Category": entry["category"],
+                    "Method": entry["method"],
+                    "Result": entry["result"]
+                },
+                indent=4)
+            )
 
 
 """
@@ -127,84 +237,90 @@ if __name__ == "__main__":
 
     vt = VirusTotalAPI()
 
-    url = "http://www.virustotal.com/"
-
-    # url_id = vt.scan_url(url)['data']['id'].split("-")[1]
-    # print("URL ID: ", url_id, end="\n\n")
+    # url = "http://www.virustotal.com/"
+    # url_scan = vt.scan_url(url)
+    # url_id = url_scan['data']['id'].split("-")[1]
+    # print("scan_url URL: ", url_scan, end="\n\n")
+    #
+    # print(f"\n\n{" * " * 25}\n\n")
+    #
+    # print("scan_url ID: ", url_id, end="\n\n")
+    #
+    # print(f"\n\n{" * " * 25}\n\n")
     #
     # url_report = vt.get_url_report(url_id)
-    # print("URL Report 2: ")
-    # pprint.pprint(url_report, indent=4)
+    # print("URL Report: ", json.dumps(url_report, indent=4), end="\n\n")
+    # # pprint.pprint(url_report, indent=4)
     #
-    # domain_list = [
-    #     "fidelity.com",  # Financial services
-    #     "attack.mitre.org",  # MITRE ATT&CK framework
-    #     "google.com",  # Popular tech and search engine
-    #     "cloudflare.com",  # Web performance and security
-    #     "github.com",  # Developer repository
-    #     "nsa.gov",  # U.S. National Security Agency
-    #     "akamai.com",  # CDN and security services
-    #     "darkwebexample.onion",  # Hypothetical dark web domain
-    #     "phishingtestsite.com",  # Hypothetical phishing test site
-    #     "malicioussite.ru",  # Hypothetical adversarial domain
-    #     "threatintelplatform.com"  # Hypothetical threat intelligence
-    # ]
+    # print(f"\n\n{" * " * 25}\n\n")
+
+    domain_list = [
+        # "virustotal.com"  # VirusTotal
+        # "fidelity.com",  # Financial services
+        "attack.mitre.org",  # MITRE ATT&CK framework
+        # "nsa.gov",  # U.S. National Security Agency
+        # "akamai.com",  # CDN and security services
+    ]
+
+    for domain in domain_list:
+        domain_report = vt.get_domain_report(domain)
+        print(f"Domain Report for {domain}: ")
+        pprint.pprint(domain_report, indent=4)
+
+    print(f"\n\n{" * " * 25}\n\n")
+
+    ip_address_list = [
+        # "192.168.1.1",  # Local network IP
+        # "10.0.0.1",  # Private network IP
+        # "172.16.0.1",  # Private network IP
+        "8.8.8.8",  # Google Public DNS
+        # "1.1.1.1"  # Cloudflare DNS
+    ]
+    for ip in ip_address_list:
+        ip_report = vt.get_ip_report(ip)
+        print(f"IP Address Report for {ip}: ")
+        pprint.pprint(ip_report, indent=4)
+
+    # print(f"\n\n{" * " * 25}\n\n")
     #
-    # for domain in domain_list:
-    #     domain_report = vt.get_domain_report(domain)
-    #     print(f"Domain Report for {domain}: ")
-    #     pprint.pprint(domain_report, indent=4)
+    # files = ["VirustotalAPI.py"]
+    # for file in files:
+    #     upload_response = vt.upload_file(file, password=None)
+    #     print(f"Uploaded {file}: ")
+    #     pprint.pprint(upload_response, indent=4)
     #
-    # ip_address_list = [
-    #     "192.168.1.1",  # Local network IP
-    #     "10.0.0.1",  # Private network IP
-    #     "172.16.0.1",  # Private network IP
-    #     "8.8.8.8",  # Google Public DNS
-    #     "1.1.1.1"  # Cloudflare DNS
-    # ]
-    # for ip in ip_address_list:
-    #     ip_report = vt.get_ip_report(ip)
-    #     print(f"IP Address Report for {ip}: ")
-    #     pprint.pprint(ip_report, indent=4)
-
-    files = ["main.py", "VirustotalAPI.py"]
-    for file in files:
-        upload_response = vt.upload_file(file, password=None)
-        print(f"Uploaded {file}: ")
-        pprint.pprint(upload_response, indent=4)
-
-        print("Analysis is queued. Waiting...")
-        max_retries = 10
-        retries = 0
-        while retries < max_retries:
-            try:
-                upload_analysis = vt.get_url_or_file_analysis(upload_response["data"]["id"])
-                status = upload_analysis["data"]["attributes"]["status"]
-
-                # Wait 5 seconds for the first check
-                if retries == 0:
-                    time.sleep(5)
-                    retries += 1
-                    continue
-
-                if status == "queued":
-                    time.sleep(10)
-                    retries += 1
-                    continue
-                elif status == "completed":
-                    print("Analysis completed.")
-                    pprint.pprint(upload_analysis, indent=4)
-                    upload_sha256 = upload_analysis["meta"]["file_info"]["sha256"]
-                    break
-                else:
-                    print(f"Unexpected status: {status}. Exiting.")
-                    break
-
-            except Exception as e:
-                print(f"Exception: {e}")
-                break
-        else:
-            print("Max retries reached. Exiting.")
-            continue
+    #     print("Analysis is queued. Waiting...")
+    #     max_retries = 10
+    #     retries = 0
+    #     while retries < max_retries:
+    #         try:
+    #             upload_analysis = vt.get_url_or_file_analysis(upload_response["data"]["id"])
+    #             status = upload_analysis["data"]["attributes"]["status"]
+    #
+    #             # Wait 5 seconds for the first check
+    #             if retries == 0:
+    #                 time.sleep(5)
+    #                 retries += 1
+    #                 continue
+    #
+    #             if status == "queued":
+    #                 time.sleep(10)
+    #                 retries += 1
+    #                 continue
+    #             elif status == "completed":
+    #                 print("Analysis completed.")
+    #                 pprint.pprint(upload_analysis, indent=4)
+    #                 upload_sha256 = upload_analysis["meta"]["file_info"]["sha256"]
+    #                 break
+    #             else:
+    #                 print(f"Unexpected status: {status}. Exiting.")
+    #                 break
+    #
+    #         except Exception as e:
+    #             print(f"Exception: {e}")
+    #             break
+    #     else:
+    #         print("Max retries reached. Exiting.")
+    #         continue
 
 # TODO: Wrap the HTTP requests in a dictionary and add the logic above to a generate_report() method.
