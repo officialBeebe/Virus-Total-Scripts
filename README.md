@@ -69,10 +69,12 @@ If you installed the requirements properly from the last step, python-dotenv wil
 Yea so now that you've activated your virtual environment and installed the necessary dependencies, you can run the
 script like normal.
 
+If you didn't include an API_KEY entry in '.env' you can include the '-k' flag follwed by your key.
+
 Example:
 
 ```bash
-python src/main.py -k your-api-key -u http://www.virustotal.com --print # Scan a URL and print the results
+python src/main.py -k your-api-key -u http://www.virustotal.com # Scan a URL and output a report
 ```
 
 For help with the script, you can run the following command
@@ -85,14 +87,14 @@ Alternatively, you can build the docker image and run the script from there.
 
 ```bash
 docker build -t my-vt .
-docker run --rm -e API_KEY="your-api-key" my-vt -u http://www.virustotal.com --print
+docker run --rm -e API_KEY="your-api-key" my-vt -u http://www.virustotal.com # -k applies normally here as mentioned above
 ````
 
-Additionally, you can allow the script to load the API key from the environment by adding an API_KEY=your-api-key entry
-to the project's .env file and rebuild the docker image. Then you can run the following command:
+Additionally, if you did add API_KEY=your-api-key entry
+ to the '.env' file you can rebuild the docker image and run the following command:
 
 ```bash
-docker run my-vt -u http://www.virustotal.com --print
+docker run my-vt -u http://www.virustotal.com
 ```
 
 How lovely is that?
@@ -107,8 +109,13 @@ deactivate
 
 # Notes
 
-This script has a lot ahead of it. I plan on implementing more features and containerizing the script for easier
-deployment. I'm not taking any feature requests at the moment but if you have any suggestions, feel free to open an
-issue.
+Currently the tool includes options for the most popular Virus Total operations for scanning:
+
+- URLs
+- File uploads
+- Domains
+- IP addresses
+
+Malware analysis is performed by third-party engines supported by Virus Total. The tool doesn't provide any sort of analysis by itself.
 
 Please note that this script is for educational purposes only. I am not responsible for any misuse of this script.
